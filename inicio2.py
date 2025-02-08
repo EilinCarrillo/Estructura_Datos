@@ -13,7 +13,7 @@ print("El promedio de la temperatura es :", promedio )
 
 if promedio <20:
     print("Revisar la temperatura")
-elif 20<= promedio <=30:
+elif 20>= promedio <=30:
     print("La temperatura esta bien")
 else:
     print("Revisar la conducta de la temperatura")
