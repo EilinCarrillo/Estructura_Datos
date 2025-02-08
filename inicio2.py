@@ -1,10 +1,10 @@
-Temperatura=[]
+temperatura=[]
 sumatempertura=0
 
 for n in range (0,23):
-    T=int(input("Ingresa la temperatura"))
-    Temperatura.append(T)
-    sumatempertura=+T
+    t=int(input("Ingresa la temperatura"))
+    temperatura.append(t)
+    sumatempertura=+t
 print (Temperatura)
 
 promedio=sumatempertura/23
