@@ -15,32 +15,58 @@ ticketTypes = {
 
 # Endpoint para crear un turno
 @app.post("/ticketCreate")
-def crear_turno(turno: Ticket):
-    # Aquí podrías agregar la lógica para guardar el turno en una base de datos
-    add_queue(turno, ticketTypes)
-    return {"mensaje": "Turno creado correctamente", "datos_turno": turno}
+def create_ticket(ticket: Ticket):
+    """
+    Create a new ticket and add it to the appropriate queue.
+    """
+    # Assign priority automatically if not specified and age > 60
+    if ticket.age > 60 and not ticket.priority_attention:
+        ticket.priority_attention = True
+    
+    # Add ticket to the appropriate queue
+    try:
+        add_queue(ticket, ticketTypes)
+        return {
+            "message": "Ticket created successfully",
+            "ticket_data": ticket.dict()
+        }
+    except ValueError as e:
+        return {"error": str(e)}
 
 # Endpoint para obtener el siguiente turno
-def obtener_siguiente_turno(tipo: str):
-    controller = ticketTypes.get(tipo.lower())
+@app.get("/nextTicket")
+def get_next_ticket(ticket_type: str):
+    """
+    Get the next ticket in the queue for the specified type of attention.
+    """
+    controller = ticketTypes.get(ticket_type.lower())
     if not controller:
-        return {"mensaje": "Tipo de atención no válido"}
+        return {"error": "Invalid ticket type"}
     
     ticket = controller.dequeue()
     if ticket:
-        return {"mensaje": "El siguiente turno es", "datos_turno": ticket}
+        return {
+            "message": "Next ticket retrieved successfully",
+            "ticket_data": ticket
+        }
     else:
-        return {"mensaje": "No hay turnos pendientes"}
+        return {"message": "No pending tickets for this type"}
 
 # Endpoint para listar los turnos en cola por el tipo de turno
 @app.get("/ticketList")
-def listar_turnos_cola(tipo: str):
-    controller = ticketTypes.get(tipo.lower())
+def list_tickets(ticket_type: str):
+    """
+    List all pending tickets for the specified type of attention.
+    """
+    controller = ticketTypes.get(ticket_type.lower())
     if not controller:
-        return {"mensaje": "Tipo de atención no válido"}
+        return {"error": "Invalid ticket type"}
     
     tickets = controller.get_all()
-    return {"mensaje": "Lista de turnos en cola", "datos_turnos": tickets}
+    return {
+        "message": f"Pending tickets for {ticket_type}",
+        "tickets": [ticket.dict() for ticket in tickets]
+    }
 
 # Otros endpoints existentes
 @app.get("/")
