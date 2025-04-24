@@ -13,17 +13,17 @@ ticketTypes = {
     "otros": TicketController()
 }
 
-# Endpoint para crear un turno
+
 @app.post("/ticketCreate")
 def create_ticket(ticket: Ticket):
     """
     Create a new ticket and add it to the appropriate queue.
     """
-    # Assign priority automatically if not specified and age > 60
+
     if ticket.age > 60 and not ticket.priority_attention:
         ticket.priority_attention = True
     
-    # Add ticket to the appropriate queue
+    
     try:
         add_queue(ticket, ticketTypes)
         return {
@@ -33,7 +33,7 @@ def create_ticket(ticket: Ticket):
     except ValueError as e:
         return {"error": str(e)}
 
-# Endpoint para obtener el siguiente turno
+
 @app.get("/nextTicket")
 def get_next_ticket(ticket_type: str):
     """
@@ -52,7 +52,7 @@ def get_next_ticket(ticket_type: str):
     else:
         return {"message": "No pending tickets for this type"}
 
-# Endpoint para listar los turnos en cola por el tipo de turno
+
 @app.get("/ticketList")
 def list_tickets(ticket_type: str):
     """
@@ -68,7 +68,7 @@ def list_tickets(ticket_type: str):
         "tickets": [ticket.dict() for ticket in tickets]
     }
 
-# Otros endpoints existentes
+
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
