@@ -1,27 +1,38 @@
+class NodoPila:
+    def __init__(self, valor, siguiente=None):
+        self.valor = valor
+        self.siguiente = siguiente
+
 class Pila:
     def __init__(self):
-        self.lista = []
+        self.cima = None
+        self._tamanio = 0
 
     def apilar(self, elemento):
-        self.lista.append(elemento)
+        nuevo = NodoPila(elemento, self.cima)
+        self.cima = nuevo
+        self._tamanio += 1
 
     def desapilar(self):
-        if len(self.lista) == 0:
+        if self.cima is None:
             print("La pila está vacía, no se puede desapilar.")
-            return None  
-        return self.lista.pop()  
+            return None
+        valor = self.cima.valor
+        self.cima = self.cima.siguiente
+        self._tamanio -= 1
+        return valor
 
     def ver_tope(self):
-        if len(self.lista) == 0:
+        if self.cima is None:
             print("La pila está vacía, no hay tope.")
             return None
-        return self.lista[-1]
+        return self.cima.valor
 
     def esta_vacia(self):
-        return len(self.lista) == 0
+        return self.cima is None
 
     def tamaño(self):
-        return len(self.lista)
+        return self._tamanio
 
 
 pila = Pila()
@@ -40,7 +51,7 @@ print("¿Está vacía?", pila.esta_vacia())
 print("Desapilando todo...")
 pila.desapilar()
 pila.desapilar()
-print("¿Está vacía ahora?", pila.esta_vacia()) 
+print("¿Está vacía ahora?", pila.esta_vacia())
 
 
 
