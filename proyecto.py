@@ -1,10 +1,9 @@
-import numpy as np
 from sklearn.ensemble import IsolationForest
+import json
 import datetime
 import random
 import time
 
-# ------------------- Nodo para Lista Enlazada -------------------
 class Node:
     def __init__(self, date, operation_type, amount, resulting_balance):
         self.date = date
@@ -16,13 +15,11 @@ class Node:
     def __str__(self):
         return f"{self.date.strftime('%d/%m/%Y %H:%M:%S')} - {self.operation_type}: ${self.amount} - Balance: ${self.resulting_balance}"
 
-# ------------------- Lista Enlazada para Historial de Transacciones -------------------
 class TransactionHistory:
     def __init__(self):
         self.head = None
         self.tail = None
-    
-    # Agrega una transacción al historial (lista enlazada)
+
     def add_transaction(self, date, operation_type, amount, resulting_balance):
         new_node = Node(date, operation_type, amount, resulting_balance)
         if self.head is None:
@@ -32,21 +29,19 @@ class TransactionHistory:
             self.tail.next = new_node
             self.tail = new_node
     
-    # Devuelve el historial de transacciones como lista de diccionarios
     def get_history(self):
         transactions = []
         current = self.head
         while current:
             transactions.append({
-                'date': current.date,
+                'date': current.date.isoformat(),  
                 'operation_type': current.operation_type,
                 'amount': current.amount,
                 'resulting_balance': current.resulting_balance
             })
             current = current.next
         return transactions
-    
-    # Muestra el historial de transacciones por consola
+
     def show_history(self):
         if self.head is None:
             print("No se registraron transacciones.")
@@ -58,7 +53,6 @@ class TransactionHistory:
             current = current.next
         print("--------------------------------")
 
-# ------------------- Cliente Bancario -------------------
 class Client:
     def __init__(self, client_id, name, initial_balance=0):
         self.client_id = client_id
@@ -73,7 +67,6 @@ class Client:
                 initial_balance
             )
     
-    # Deposita dinero en la cuenta
     def deposit(self, amount):
         if amount <= 0:
             return False, "Deposit amount must be greater than zero."
@@ -86,7 +79,6 @@ class Client:
         )
         return True, f"Deposit of ${amount} successful. New balance: ${self.balance}"
     
-    # Retira dinero de la cuenta
     def withdraw(self, amount):
         if amount <= 0:
             return False, "Withdrawal amount must be greater than zero."
@@ -101,7 +93,6 @@ class Client:
         )
         return True, f"Withdrawal of ${amount} successful. New balance: ${self.balance}"
     
-    # Consulta el saldo actual
     def check_balance(self):
         self.history.add_transaction(
             datetime.datetime.now(),
@@ -111,11 +102,16 @@ class Client:
         )
         return True, f"Current balance: ${self.balance}"
     
-    # Extrae características de las transacciones para análisis de fraude
     def get_transaction_data(self):
         transactions = self.history.get_history()
+
+        for tx in transactions:
+            if isinstance(tx['date'], str):
+                tx['date'] = datetime.datetime.fromisoformat(tx['date'])
+
         if len(transactions) < 2:
             return []
+
         data = []
         for i in range(1, len(transactions)):
             current_trans = transactions[i]
@@ -130,45 +126,70 @@ class Client:
                 ])
         return data
 
-# ------------------- Cola de Clientes -------------------
+
+    def to_dict(self):
+        return {"client_id": self.client_id, "name": self.name, "balance": self.balance, "history": self.history.get_history()}
+
+    @staticmethod
+    def from_dict(data):
+        client = Client(data["client_id"], data["name"], data["balance"])
+        for tx in data["history"]:
+            client.history.add_transaction(datetime.datetime.fromisoformat(tx["date"]), tx["operation_type"], tx["amount"], tx["resulting_balance"])
+        return client
+
+class QueueNode:
+    def __init__(self, client):
+        self.client = client
+        self.next = None
+        
 class Queue:
     def __init__(self):
-        self.elements = []
+        self.front = None
+        self.rear = None
+        self._size = 0
     
-    # Encola un elemento
-    def enqueue(self, element):
-        self.elements.append(element)
-    
-    # Desencola el primer elemento
+    def enqueue(self, client):
+        new_node = QueueNode(client)
+        if self.rear is None:
+            self.front = self.rear = new_node
+        else:
+            self.rear.next = new_node
+            self.rear = new_node
+        self._size += 1
+   
     def dequeue(self):
-        if not self.is_empty():
-            return self.elements.pop(0)
-        return None
+        if self.is_empty():
+            return None
+        removed_client = self.front.client
+        self.front = self.front.next
+        if self.front is None:
+            self.rear = None
+        self._size -= 1
+        return removed_client
     
-    # Verifica si la cola está vacía
     def is_empty(self):
-        return len(self.elements) == 0
+        return self.front is None
     
-    # Devuelve el tamaño de la cola
     def size(self):
-        return len(self.elements)
+        return self._size
     
-    # Muestra los clientes en la cola
     def show(self):
         if self.is_empty():
             print("Queue is empty.")
-        else:
-            print("Clients in queue:")
-            for i, client in enumerate(self.elements):
-                print(f"{i+1}. {client.name}")
+            return
+        print("Clients in queue:")
+        index = 1
+        current = self.front
+        while current:
+            print(f"{index}. {current.client.name}")
+            current = current.next
+            index += 1
 
-# ------------------- Detector de Fraudes -------------------
 class FraudDetector:
     def __init__(self):
         self.model = IsolationForest(contamination=0.05, random_state=42)
         self.trained = False
-    
-    # Entrena el modelo con datos conocidos
+   
     def train(self, transaction_data):
         if len(transaction_data) >= 5:
             self.model.fit(transaction_data)
@@ -176,7 +197,6 @@ class FraudDetector:
             return True
         return False
     
-    # Detecta si una nueva transacción puede ser fraudulenta
     def detect_fraud(self, new_transaction):
         if not self.trained:
             return False, 0
@@ -184,7 +204,6 @@ class FraudDetector:
         score = self.model.score_samples([new_transaction])[0]
         return prediction == -1, score
 
-# ------------------- Simulador de Cajero Bancario -------------------
 class BankATM:
     def __init__(self):
         self.clients = {}
@@ -192,7 +211,6 @@ class BankATM:
         self.fraud_detector = FraudDetector()
         self.fraud_dataset = []
     
-    # Registra un nuevo cliente
     def register_client(self, client_id, name, initial_balance=0):
         if client_id in self.clients:
             return False, f"Client with ID {client_id} already exists"
@@ -200,21 +218,18 @@ class BankATM:
         self.clients[client_id] = new_client
         return True, f"Client {name} registered successfully with ID {client_id}"
     
-    # Agrega un cliente a la cola
     def add_client_to_queue(self, client_id):
         if client_id not in self.clients:
             return False, f"No client with ID {client_id}"
         self.client_queue.enqueue(self.clients[client_id])
         return True, f"Client {self.clients[client_id].name} added to queue"
     
-    # Atiende al siguiente cliente en la cola
     def attend_next_client(self):
         if self.client_queue.is_empty():
             return False, "No clients waiting", None
         client = self.client_queue.dequeue()
         return True, f"Attending {client.name}", client
     
-    # Realiza una operación bancaria
     def perform_operation(self, client, operation_type, amount=0):
         result = False
         message = ""
@@ -227,8 +242,7 @@ class BankATM:
         if result and operation_type in ["1", "2"]:
             self._check_fraud(client)
         return result, message
-    
-    # Verifica si la última transacción es fraudulenta
+ 
     def _check_fraud(self, client):
         data = client.get_transaction_data()
         if len(data) == 0:
@@ -246,7 +260,6 @@ class BankATM:
                 print(f"Transacción sospechosa: {last_transaction}")
                 print("Se recomienda verificar la identidad del cliente.\n")
 
-    # Genera datos simulados para pruebas
     def generate_simulated_data(self, num_clients=5, num_transactions=20):
         names = ["Ana García", "Juan Pérez", "María López", "Carlos Ruiz", 
                  "Laura Torres", "Pedro Sánchez", "Sofía Martínez", "Javier Fernández"]
@@ -276,9 +289,24 @@ class BankATM:
             deposit_amount = anomalous_client2.balance * 5
             self.perform_operation(anomalous_client2, "1", deposit_amount)
 
-# ------------------- Menú Principal -------------------
+    def save_clients_to_file(self, filename="clientes.json"):
+        with open(filename, "w") as f:
+            data = [client.to_dict() for client in self.clients.values()]
+            json.dump(data, f, indent=4)
+
+    def load_clients_from_file(self, filename="clientes.json"):
+        try:
+            with open(filename, "r") as f:
+                data = json.load(f)
+                for client_data in data:
+                    client = Client.from_dict(client_data)
+                    self.clients[client.client_id] = client
+        except FileNotFoundError:
+            print(f"No se encontró el archivo {filename}. Cargando clientes vacíos.")
+            
 def main_menu():
     atm = BankATM()
+    atm.load_clients_from_file()
     while True:
         print("\n===== BANCOOOOOOOOOOO =====")
         print("1. Registrar nuevo cliente")
@@ -356,6 +384,7 @@ def main_menu():
             except ValueError:
                 print("Debes ingresar valores numéricos.")
         elif option == "7":
+            atm.save_clients_to_file()
             print("Adios!!.")
             break
         else:

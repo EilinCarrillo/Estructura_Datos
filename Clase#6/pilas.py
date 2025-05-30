@@ -10,7 +10,7 @@ class Pila:
 
     def apilar(self, elemento):
         nuevo = NodoPila(elemento, self.cima)
-        self.cima = nuevo
+        self.cima = nuevo 
         self._tamanio += 1
 
     def desapilar(self):
@@ -52,7 +52,6 @@ print("Desapilando todo...")
 pila.desapilar()
 pila.desapilar()
 print("¿Está vacía ahora?", pila.esta_vacia())
-
 
 
 

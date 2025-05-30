@@ -1,0 +1,15 @@
+[
+    {
+        "client_id": "1",
+        "name": "Ramon Arias",
+        "balance": 2000000.0,
+        "history": [
+            {
+                "date": "2025-05-30T18:47:02.854500",
+                "operation_type": "Initial Balance",
+                "amount": 2000000.0,
+                "resulting_balance": 2000000.0
+            }
+        ]
+    }
+]
